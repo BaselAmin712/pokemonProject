@@ -4,19 +4,13 @@ import mysql.connector
 from constants import pokemonApi_url
 
 
-
-def get_db():
-    db = Mysql_database()
-    return db
-
-
 class Mysql_database(Database):
     def __init__(self):
         self.config = {
             'user': 'root',
             'password': '',
             'host': 'localhost',
-            'port': '3307',
+            'port': '3306',
             'database': 'db_pokemon'
         }
 
@@ -26,7 +20,6 @@ class Mysql_database(Database):
         mydb = mysql.connector.connect(**self.config)
         return mydb
 
-    
     def __execute_query(self, query, commit=False):
         mydb = self.connect()
         cursor = mydb.cursor()
@@ -34,21 +27,20 @@ class Mysql_database(Database):
         if commit:
             mydb.commit()
         return cursor.fetchall()
-    
-    
+
     def __get_evolve_chain(self, pokemon):
         """
             retrieve a pokemon chain by its name from PokeAPI
             :param pokemon: the name of pokemon to retrieve
             :return: pokemon  chain data
         """
-        response = requests.get(pokemonApi_url+pokemon).json()
+        response = requests.get(pokemonApi_url + pokemon).json()
         species_url = response["species"]["url"]
         response = requests.get(species_url).json()
         evolution_chain = response["evolution_chain"]["url"]
         response = requests.get(evolution_chain).json()
         return response["chain"]
-    
+
     def get_next_evolve_pokemon_name(self, pokemon):
         """
             retrieve a pokemon name after evolve from given name and check if volve possible
@@ -56,15 +48,13 @@ class Mysql_database(Database):
             :return: pokemon  evolve pokemon name none if cant evolve
         """
         evolve_chain = self.__get_evolve_chain(pokemon)
-        while(evolve_chain["species"]["name"] != pokemon):
-                evolve_chain=evolve_chain["evolves_to"][0]
+        while (evolve_chain["species"]["name"] != pokemon):
+            evolve_chain = evolve_chain["evolves_to"][0]
         try:
             result = evolve_chain["evolves_to"][0]["species"]["name"]
         except IndexError:
             return None
         return result
-
-    
 
     def get_pokemon_by_type(self, type: str):
         query = f"SELECT p.name FROM pokemons p join pokemonstypes pt on  p.id = pt.pokemon_id where pt.type_name = '{type}'"
@@ -76,7 +66,7 @@ class Mysql_database(Database):
     def get_pokemon_by_name(self, name: str):
         query = f"""SELECT * FROM pokemons WHERE name = '{name}'"""
         return self.__execute_query(query)
-    
+
     def get_trainer_by_name(self, name: str):
         query = f"""SELECT * FROM trainers WHERE name = '{name}'"""
         return self.__execute_query(query)
@@ -84,7 +74,7 @@ class Mysql_database(Database):
     def get_trainer_by_id(self, id: int):
         query = f"""SELECT * FROM trainers WHERE id = '{id}'"""
         return self.__execute_query(query)
-    
+
     def get_pokemon_by_id(self, id: int):
         query = f"""SELECT * FROM pokemons WHERE id = '{id}'"""
         return self.__execute_query(query)
@@ -92,11 +82,11 @@ class Mysql_database(Database):
     def get_trainer_by_id(self, id: int):
         query = f"""SELECT * FROM trainers WHERE id = '{id}'"""
         return self.__execute_query(query)
-    
+
     def get_all_trainers(self):
         query = "SELECT * FROM trainers "
         return self.__execute_query(query)
-    
+
     def get_pokemon_by_trainer(self, trainer: str):
         query = f"""
         SELECT p.name
@@ -105,14 +95,14 @@ class Mysql_database(Database):
         JOIN trainers t ON t.id = team.trainer_id
         WHERE t.name = '{trainer}';
         """
-        pokemons=self.__execute_query(query)
+        pokemons = self.__execute_query(query)
         pokemons = [list(inner_list) for inner_list in pokemons]
         return pokemons
 
     def get_trainers_of_pokemon(self, pokemon: str):
         query = f"SELECT t.name FROM trainers t join team on  t.id = team.trainer_id join pokemons p on p.id = team.pokemon_id  where p.name = '{pokemon}'"
         return self.__execute_query(query)
-    
+
     def add_pokemonsTypes(self, pokemon_id: int, types: list):
         for type in types:
             query = f"""INSERT INTO pokemonsTypes (type_name, pokemon_id) VALUES ('{type}', {pokemon_id})"""
@@ -129,12 +119,11 @@ class Mysql_database(Database):
         self.__execute_query(query, commit=True)
         return True
 
-
-    def add_pokemon_to_trainer(self, trainer_id,pokemon_id):
+    def add_pokemon_to_trainer(self, trainer_id, pokemon_id):
         query = f"""INSERT INTO team (trainer_id,pokemon_id) VALUES ('{trainer_id}', {pokemon_id})"""
         self.__execute_query(query, commit=True)
         return True
-    
+
     def add_pokemon(self, data):
         query = f"INSERT INTO pokemons (id, name, height, weight) VALUES ({data[0]},'{data[1]}', {data[2]}, {data[3]});"
         try:
@@ -145,18 +134,14 @@ class Mysql_database(Database):
             print(f"Error occurred: {e}")
             return False
 
-    def check_trainer_and_pokemon(self, pokemon_id: int, trainer_id:int):
+    def check_trainer_and_pokemon(self, pokemon_id: int, trainer_id: int):
         query = f"SELECT * from team where trainer_id={trainer_id} and pokemon_id={pokemon_id}"
         if self.__execute_query(query):
             return True
         return False
 
-    def delete_pokemon(self,pokemon_name, trainer_name):
+    def delete_pokemon(self, pokemon_name, trainer_name):
         pokemon_id = self.__execute_query(f"SELECT id FROM pokemons WHERE name = '{pokemon_name}';")[0][0]
         trainer_id = self.__execute_query(f"SELECT id FROM trainers WHERE name = '{trainer_name}';")[0][0]
         query = f"DELETE FROM team WHERE trainer_id = {trainer_id} AND pokemon_id = {pokemon_id};"
-        self.__execute_query(query,True)
-        
-
-
-   
+        self.__execute_query(query, True)

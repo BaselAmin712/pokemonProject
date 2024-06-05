@@ -1,11 +1,7 @@
-# 1.	Get pokemons by type: returns all pokemons with the specific type
-# 2.	Get pokemons by trainer: get all the pokemons of a given owner
-# 3.	Get trainers of a pokemon: get all the trainers of a given pokemon
-from typing import Optional, List
-
+from typing import Optional
 from fastapi import APIRouter, HTTPException, Query, Depends
 from models.schema import Pokemon
-from models.mysql_database import Mysql_database, get_db
+from utils.get_db import get_db
 
 router = APIRouter(
     prefix='/pokemons',
@@ -62,9 +58,9 @@ def delete_pokemon_from_trainer(trainer_name: str, pokemon_name: str, pokemon_db
     :return:
     """
     try:
-        
+
         pokemon_db.delete_pokemon( pokemon_name,trainer_name)
-        
+
         return {"message": "Pokemon deleted successfully"}
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
@@ -91,7 +87,7 @@ def evolve_pokemon(pokemon:str,trainer:str, pokemon_db=Depends(get_db)):
         raise HTTPException(status_code=404, detail="No Trainer found with the given name")
     if not pokemon_db.check_trainer_and_pokemon(pokemon_id,trainer_id):
         raise HTTPException(status_code=400, detail="Pokémon is not in trainer hand")
-    evolved_pokemon = pokemon_db.get_next_evolve_pokemon_name(pokemon)   
+    evolved_pokemon = pokemon_db.get_next_evolve_pokemon_name(pokemon)
     if not evolved_pokemon:
         raise HTTPException(status_code=403, detail="Pokémon has reach max evoloution")
     evolved_pokemon_id = pokemon_db.get_pokemon_by_name(evolved_pokemon)[0][0]

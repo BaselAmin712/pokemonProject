@@ -1,6 +1,6 @@
 # 1.	Get trainers of a pokemon: get all the trainers of a given pokemon
 from fastapi import APIRouter, HTTPException, Depends
-from models.mysql_database import Mysql_database, get_db
+from utils.get_db import get_db
 
 router = APIRouter(
     prefix='/trainers',
